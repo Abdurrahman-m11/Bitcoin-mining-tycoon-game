@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Mining Tycoon</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            position: relative;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: rgba(30, 30, 46, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #4a4a6d;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        h1, h2, h3 {
+            color: #f7931a;
+            text-align: center;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat {
+            background: rgba(40, 40, 60, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .shop-item {
+            background: rgba(50, 50, 70, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .shop-item:hover {
+            transform: translateY(-2px);
+            background: rgba(60, 60, 80, 0.9);
+        }
+        .shop-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        button {
+            background: linear-gradient(135deg, #f7931a 0%, #e87d0e 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+            margin: 5px;
+        }
+        button:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .owned-items {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .gpu-item, .power-item {
+            background: rgba(40, 40, 60, 0.8);
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .nvidia { border-left: 4px solid #76b900; }
+        .amd { border-left: 4px solid #ed1c24; }
+        .power-upgrade { border-left: 4px solid #2196F3; }
+        .energy-source { border-left: 4px solid #9C27B0; }
+        .secret-code { border-left: 4px solid #FF9800; }
+        
+        /* Hidden code panel */
+        .code-panel {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        .code-button {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .code-input-container {
+            position: absolute;
+            bottom: 50px;
+            right: 0;
+            background: rgba(30, 30, 46, 0.95);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #9C27B0;
+            display: none;
+            width: 300px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .code-input-container.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .code-input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #9C27B0;
+            border-radius: 5px;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        /* Fire effect */
+        .fire-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 50, 0, 0.1);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 1s;
+            z-index: 1001;
+        }
+        .fire-overlay.active {
+            opacity: 1;
+            animation: flicker 0.3s infinite;
+        }
+        @keyframes flicker {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        .flame {
+            position: absolute;
+            background: radial-gradient(ellipse at center, rgba(255,80,0,0.8) 0%, rgba(255,30,0,0.3) 40%, transparent 70%);
+            border-radius: 50%;
+            animation: burn 2s infinite;
+        }
+        @keyframes burn {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        /* Notification system */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: rgba(30, 30, 46, 0.95);
+            border-left: 4px solid;
+            border-radius: 5px;
+            color: white;
+            z-index: 1002;
+            animation: slideIn 0.3s ease;
+            max-width: 300px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        .notification.success { border-color: #4CAF50; }
+        .notification.error { border-color: #f44336; }
+        .notification.warning { border-color: #FF9800; }
+        .notification.info { border-color: #2196F3; }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .code-input-container {
+                width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>⚡ Bitcoin Mining Tycoon ⛏️</h1>
+    
+    <div class="stats">
+        <div class="stat">
+            <div>Bitcoin</div>
+            <div class="stat-value" id="bitcoin">0.00000000</div>
+        </div>
+        <div class="stat">
+            <div>Hash Rate</div>
+            <div class="stat-value" id="hashRate">0 H/s</div>
+        </div>
+        <div class="stat">
+            <div>Power Usage</div>
+            <div class="stat-value" id="powerUsage">0W / 0W</div>
+        </div>
+        <div class="stat">
+            <div>Money</div>
+            <div class="stat-value" id="money">$1,000</div>
+        </div>
+        <div class="stat">
+            <div>Bitcoin Price</div>
+            <div class="stat-value" id="btcPrice">$45,000</div>
+        </div>
+        <div class="stat">
+            <div>Power Generated</div>
+            <div class="stat-value" id="powerGenerated">0W</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="left-column">
+            <div class="panel">
+                <h2>🛒 GPU Shop</h2>
+                <div class="shop-items" id="gpuShop"></div>
+            </div>
+            
+            <div class="panel">
+                <h2>⚡ Power & Energy</h2>
+                <div class="shop-items" id="powerShop"></div>
+            </div>
+        </div>
+        
+        <div class="right-column">
+            <div class="panel">
+                <h2>💻 Your Mining Rigs</h2>
+                <div class="owned-items" id="ownedGpus"></div>
+            </div>
+            
+            <div class="panel">
+                <h2>🔋 Power Infrastructure</h2>
+                <div class="owned-items" id="ownedPower"></div>
+            </div>
+            
+            <div class="panel">
+                <h2>⚙️ Upgrade Station</h2>
+                <div id="upgradeStation"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>📈 Mining Progress</h2>
+        <div class="progress-bar">
+            <div class="progress-fill" id="miningProgress"></div>
+        </div>
+        <div style="text-align: center; margin-top: 10px;">
+            Next Bitcoin Block: <span id="nextBlock">100%</span>
+        </div>
+    </div>
+
+    <!-- Hidden Code Panel -->
+    <div class="code-panel">
+        <button class="code-button" onclick="toggleCodeInput()">🔑</button>
+        <div class="code-input-container" id="codeInputContainer">
+            <h3 style="margin-top: 0; color: #9C27B0;">Secret Codes</h3>
+            <p style="font-size: 12px; opacity: 0.8;">Enter a secret code below:</p>
+            <input type="text" class="code-input" id="codeInput" placeholder="Enter code..." onkeypress="handleCodeEnter(event)">
+            <button onclick="submitCode()">Submit Code</button>
+            <p style="font-size: 11px; opacity: 0.6; margin-top: 10px;">
+                Hint: Try "ryzen4070" or "gamemax"
+            </p>
+        </div>
+    </div>
+
+    <!-- Fire Effect -->
+    <div class="fire-overlay" id="fireOverlay"></div>
+
+    <script>
+        class Game {
+            constructor() {
+                this.money = 1000;
+                this.bitcoin = 0;
+                this.hashRate = 0;
+                this.totalPowerUsage = 0;
+                this.totalPowerCapacity = 500;
+                this.powerGenerated = 0;
+                this.bitcoinPrice = 45000;
+                this.isOnFire = false;
+                this.fireEndTime = 0;
+                
+                this.gpus = [];
+                this.powerInfrastructure = [];
+                this.psuLevel = 1;
+                this.usedCodes = new Set();
+                
+                this.setupGPUs();
+                this.setupPowerItems();
+                this.setupCodes();
+                this.startGame();
+            }
+            
+            setupGPUs() {
+                this.gpuCatalog = [
+                    // NVIDIA 900 Series
+                    { id: 'gtx950', name: 'GTX 950', brand: 'nvidia', hashRate: 8, power: 90, price: 80, tier: 1 },
+                    { id: 'gtx960', name: 'GTX 960', brand: 'nvidia', hashRate: 12, power: 120, price: 100, tier: 1 },
+                    { id: 'gtx970', name: 'GTX 970', brand: 'nvidia', hashRate: 18, power: 145, price: 150, tier: 2 },
+                    { id: 'gtx980', name: 'GTX 980', brand: 'nvidia', hashRate: 25, power: 165, price: 200, tier: 2 },
+                    { id: 'gtx980ti', name: 'GTX 980 Ti', brand: 'nvidia', hashRate: 35, power: 250, price: 300, tier: 3 },
+                    
+                    // NVIDIA 1000 Series
+                    { id: 'gtx1060', name: 'GTX 1060', brand: 'nvidia', hashRate: 22, power: 120, price: 250, tier: 2 },
+                    { id: 'gtx1070', name: 'GTX 1070', brand: 'nvidia', hashRate: 30, power: 150, price: 350, tier: 3 },
+                    { id: 'gtx1080', name: 'GTX 1080', brand: 'nvidia', hashRate: 40, power: 180, price: 450, tier: 3 },
+                    { id: 'gtx1080ti', name: 'GTX 1080 Ti', brand: 'nvidia', hashRate: 55, power: 250, price: 700, tier: 4 },
+                    
+                    // NVIDIA 2000 Series
+                    { id: 'rtx2060', name: 'RTX 2060', brand: 'nvidia', hashRate: 32, power: 160, price: 350, tier: 3 },
+                    { id: 'rtx2070', name: 'RTX 2070', brand: 'nvidia', hashRate: 45, power: 175, price: 500, tier: 4 },
+                    { id: 'rtx2080', name: 'RTX 2080', brand: 'nvidia', hashRate: 60, power: 215, price: 700, tier: 4 },
+                    { id: 'rtx2080ti', name: 'RTX 2080 Ti', brand: 'nvidia', hashRate: 85, power: 260, price: 1200, tier: 5 },
+                    
+                    // NVIDIA 3000 Series
+                    { id: 'rtx3060', name: 'RTX 3060', brand: 'nvidia', hashRate: 48, power: 170, price: 400, tier: 4 },
+                    { id: 'rtx3070', name: 'RTX 3070', brand: 'nvidia', hashRate: 62, power: 220, price: 600, tier: 5 },
+                    { id: 'rtx3080', name: 'RTX 3080', brand: 'nvidia', hashRate: 95, power: 320, price: 900, tier: 5 },
+                    { id: 'rtx3090', name: 'RTX 3090', brand: 'nvidia', hashRate: 120, power: 350, price: 1500, tier: 6 },
+                    
+                    // NVIDIA 4000 Series
+                    { id: 'rtx4060', name: 'RTX 4060', brand: 'nvidia', hashRate: 65, power: 115, price: 450, tier: 5 },
+                    { id: 'rtx4070', name: 'RTX 4070', brand: 'nvidia', hashRate: 80, power: 200, price: 700, tier: 5 },
+                    { id: 'rtx4080', name: 'RTX 4080', brand: 'nvidia', hashRate: 110, power: 320, price: 1200, tier: 6 },
+                    { id: 'rtx4090', name: 'RTX 4090', brand: 'nvidia', hashRate: 150, power: 450, price: 2000, tier: 7 },
+                    
+                    // AMD RX 400 Series
+                    { id: 'rx470', name: 'RX 470', brand: 'amd', hashRate: 24, power: 120, price: 150, tier: 2 },
+                    { id: 'rx480', name: 'RX 480', brand: 'amd', hashRate: 28, power: 150, price: 200, tier: 3 },
+                    
+                    // AMD RX 500 Series
+                    { id: 'rx570', name: 'RX 570', brand: 'amd', hashRate: 26, power: 150, price: 180, tier: 2 },
+                    { id: 'rx580', name: 'RX 580', brand: 'amd', hashRate: 30, power: 185, price: 220, tier: 3 },
+                    
+                    // AMD RX 6000 Series
+                    { id: 'rx6700xt', name: 'RX 6700 XT', brand: 'amd', hashRate: 46, power: 230, price: 500, tier: 4 },
+                    { id: 'rx6800', name: 'RX 6800', brand: 'amd', hashRate: 64, power: 250, price: 650, tier: 5 },
+                    { id: 'rx6900xt', name: 'RX 6900 XT', brand: 'amd', hashRate: 88, power: 300, price: 1000, tier: 6 },
+                    
+                    // AMD RX 7000 Series
+                    { id: 'rx7700xt', name: 'RX 7700 XT', brand: 'amd', hashRate: 70, power: 245, price: 550, tier: 5 },
+                    { id: 'rx7800xt', name: 'RX 7800 XT', brand: 'amd', hashRate: 85, power: 263, price: 650, tier: 6 },
+                    { id: 'rx7900xt', name: 'RX 7900 XT', brand: 'amd', hashRate: 105, power: 315, price: 900, tier: 6 },
+                    { id: 'rx7900xtx', name: 'RX 7900 XTX', brand: 'amd', hashRate: 130, power: 355, price: 1200, tier: 7 },
+                ];
+            }
+            
+            setupPowerItems() {
+                this.powerCatalog = [
+                    { id: 'psu2', name: '750W PSU', type: 'psu', capacity: 750, price: 100, description: 'Basic power supply' },
+                    { id: 'psu3', name: '1200W PSU', type: 'psu', capacity: 1200, price: 200, description: 'Gold rated PSU' },
+                    { id: 'psu4', name: '1600W PSU', type: 'psu', capacity: 1600, price: 350, description: 'Platinum rated PSU' },
+                    { id: 'psu5', name: '2000W PSU', type: 'psu', capacity: 2000, price: 500, description: 'Server grade PSU' },
+                    
+                    { id: 'solar1', name: 'Solar Panel', type: 'energy', power: 100, price: 300, description: '100W solar panel' },
+                    { id: 'solar2', name: 'Solar Array', type: 'energy', power: 500, price: 1200, description: '500W solar array' },
+                    { id: 'wind1', name: 'Wind Turbine', type: 'energy', power: 200, price: 500, description: 'Small wind turbine' },
+                    { id: 'wind2', name: 'Wind Farm', type: 'energy', power: 1000, price: 3000, description: 'Industrial wind turbine' },
+                    { id: 'hydro1', name: 'Hydro Generator', type: 'energy', power: 300, price: 800, description: 'Small hydro generator' },
+                    { id: 'geothermal1', name: 'Geothermal Plant', type: 'energy', power: 2000, price: 10000, description: 'Small geothermal plant' },
+                    { id: 'nuclear1', name: 'Nuclear Reactor', type: 'energy', power: 5000, price: 50000, description: 'Experimental fusion reactor' },
+                ];
+            }
+            
+            setupCodes() {
+                this.secretCodes = {
+                    'RYZEN4070': {
+                        name: 'Ryzen 4070 Ultra',
+                        effect: () => this.applyRyzen4070Code(),
+                        description: 'Unlocks the mythical Ryzen 4070 GPU - The most powerful GPU ever! (Warning: Power hungry)'
+                    },
+                    'GAMEMAX': {
+                        name: 'GameMax Exploder',
+                        effect: () => this.applyGamemaxCode(),
+                        description: 'Gets a "1000W" GameMax PSU... which will definitely explode'
+                    },
+                    'BITCOINMAX': {
+                        name: 'Bitcoin Max',
+                        effect: () => {
+                            this.bitcoin += 0.5;
+                            this.showNotification('Added 0.5 BTC!', 'success');
+                        },
+                        description: 'Adds 0.5 Bitcoin to your wallet'
+                    },
+                    'POWERUP': {
+                        name: 'Power Unlimited',
+                        effect: () => {
+                            this.totalPowerCapacity += 2000;
+                            this.showNotification('Added 2000W to power capacity!', 'success');
+                        },
+                        description: 'Increases power capacity by 2000W'
+                    },
+                    'MINERLUCK': {
+                        name: 'Miner\'s Luck',
+                        effect: () => {
+                            this.money += 5000;
+                            this.showNotification('Found $5000 in an old mining rig!', 'success');
+                        },
+                        description: 'Adds $5000 to your balance'
+                    }
+                };
+            }
+            
+            applyRyzen4070Code() {
+                // Add the super overpowered GPU
+                const ryzen4070 = {
+                    id: 'ryzen4070',
+                    name: '⚡ RYZEN 4070 ULTRA ⚡',
+                    brand: 'amd',
+                    hashRate: 1000, // Extremely overpowered
+                    power: 1000, // Very power hungry
+                    price: 0,
+                    tier: 10,
+                    level: 1,
+                    efficiency: 0.5, // Not efficient at all
+                    overclocked: true, // Always overclocked
+                    fromCode: true
+                };
+                
+                this.gpus.push(ryzen4070);
+                this.showNotification('⚡ RYZEN 4070 ULTRA ADDED! ⚡<br>Extreme performance but very power hungry!', 'warning');
+                this.recalculateStats();
+            }
+            
+            applyGamemaxCode() {
+                this.showNotification('💥 Installing GameMax "1000W" PSU... 💥', 'warning');
+                
+                // Start fire effect after a short delay
+                setTimeout(() => {
+                    this.isOnFire = true;
+                    this.fireEndTime = Date.now() + 10000; // Fire lasts 10 seconds
+                    
+                    // Create flame effects
+                    this.createFlames();
+                    
+                    // Reduce all GPU performance to 10%
+                    this.gpus.forEach(gpu => {
+                        gpu.hashRate *= 0.1;
+                    });
+                    
+                    // Remove all regular PSU capacity
+                    this.totalPowerCapacity = 0;
+                    
+                    // Remove 80% of money
+                    this.money *= 0.2;
+                    
+                    this.showNotification('💥💥💥 GAMEMAX PSU EXPLODED! 💥💥💥<br>Everything is on fire! Mining rigs damaged!', 'error');
+                    this.recalculateStats();
+                }, 2000);
+            }
+            
+            createFlames() {
+                const overlay = document.getElementById('fireOverlay');
+                overlay.classList.add('active');
+                overlay.innerHTML = '';
+                
+                // Create multiple flame elements
+                for (let i = 0; i < 15; i++) {
+                    const flame = document.createElement('div');
+                    flame.className = 'flame';
+                    flame.style.width = `${Math.random() * 200 + 100}px`;
+                    flame.style.height = `${Math.random() * 200 + 100}px`;
+                    flame.style.left = `${Math.random() * 100}%`;
+                    flame.style.top = `${Math.random() * 100}%`;
+                    flame.style.animationDelay = `${Math.random() * 2}s`;
+                    overlay.appendChild(flame);
+                }
+            }
+            
+            checkFire() {
+                if (this.isOnFire && Date.now() > this.fireEndTime) {
+                    this.isOnFire = false;
+                    const overlay = document.getElementById('fireOverlay');
+                    overlay.classList.remove('active');
+                    overlay.innerHTML = '';
+                    this.showNotification('🔥 Fire has been extinguished. Rig severely damaged.', 'warning');
+                }
+            }
+            
+            startGame() {
+                this.updateDisplay();
+                this.gameLoop();
+                this.marketFluctuation();
+            }
+            
+            gameLoop() {
+                setInterval(() => {
+                    this.mineBitcoin();
+                    this.checkFire();
+                    this.updateDisplay();
+                }, 100);
+            }
+            
+            marketFluctuation() {
+                setInterval(() => {
+                    const change = (Math.random() - 0.5) * 0.1;
+                    this.bitcoinPrice *= (1 + change);
+                    this.bitcoinPrice = Math.max(10000, Math.min(100000, this.bitcoinPrice));
+                    this.updateDisplay();
+                }, 10000);
+            }
+            
+            mineBitcoin() {
+                if (this.isOnFire) {
+                    // Only mine at 10% efficiency during fire
+                    const btcPerSecond = (this.hashRate / 1000000000) * 0.1;
+                    this.bitcoin += btcPerSecond / 10;
+                } else {
+                    const btcPerSecond = this.hashRate / 1000000000;
+                    this.bitcoin += btcPerSecond / 10;
+                }
+                
+                if (this.totalPowerUsage > this.totalPowerCapacity + this.powerGenerated) {
+                    this.hashRate *= 0.5;
+                }
+            }
+            
+            buyGPU(gpuId) {
+                const gpu = this.gpuCatalog.find(g => g.id === gpuId);
+                if (!gpu) return;
+                
+                if (this.money >= gpu.price) {
+                    this.money -= gpu.price;
+                    this.gpus.push({
+                        ...gpu,
+                        level: 1,
+                        efficiency: 1.0,
+                        overclocked: false
+                    });
+                    this.recalculateStats();
+                    this.updateDisplay();
+                    this.showNotification(`Purchased ${gpu.name}!`, 'success');
+                }
+            }
+            
+            buyPowerItem(itemId) {
+                const item = this.powerCatalog.find(i => i.id === itemId);
+                if (!item) return;
+                
+                if (this.money >= item.price) {
+                    this.money -= item.price;
+                    
+                    if (item.type === 'psu') {
+                        this.totalPowerCapacity = item.capacity;
+                        this.psuLevel = parseInt(item.id.replace('psu', ''));
+                        this.showNotification(`Upgraded to ${item.name}!`, 'success');
+                    } else if (item.type === 'energy') {
+                        this.powerInfrastructure.push(item);
+                        this.powerGenerated += item.power;
+                        this.showNotification(`Installed ${item.name}!`, 'success');
+                    }
+                    
+                    this.recalculateStats();
+                    this.updateDisplay();
+                }
+            }
+            
+            upgradeGPU(gpuIndex) {
+                const gpu = this.gpus[gpuIndex];
+                const upgradeCost = gpu.price * 0.5;
+                
+                if (this.money >= upgradeCost) {
+                    this.money -= upgradeCost;
+                    gpu.level++;
+                    gpu.hashRate *= 1.2;
+                    gpu.efficiency *= 1.05;
+                    this.recalculateStats();
+                    this.updateDisplay();
+                    this.showNotification(`Upgraded ${gpu.name} to level ${gpu.level}!`, 'success');
+                }
+            }
+            
+            overclockGPU(gpuIndex) {
+                const gpu = this.gpus[gpuIndex];
+                if (!gpu.overclocked && this.money >= 100) {
+                    this.money -= 100;
+                    gpu.overclocked = true;
+                    gpu.hashRate *= 1.3;
+                    gpu.power *= 1.4;
+                    this.recalculateStats();
+                    this.updateDisplay();
+                    this.showNotification(`Overclocked ${gpu.name}!`, 'warning');
+                }
+            }
+            
+            recalculateStats() {
+                this.hashRate = 0;
+                this.totalPowerUsage = 0;
+                
+                this.gpus.forEach(gpu => {
+                    this.hashRate += gpu.hashRate;
+                    this.totalPowerUsage += gpu.power;
+                });
+            }
+            
+            sellBitcoin() {
+                if (this.bitcoin > 0) {
+                    const earnings = this.bitcoin * this.bitcoinPrice;
+                    this.money += earnings;
+                    this.showNotification(`Sold ${this.bitcoin.toFixed(8)} BTC for $${earnings.toFixed(2)}!`, 'success');
+                    this.bitcoin = 0;
+                    this.updateDisplay();
+                }
+            }
+            
+            submitCode(code) {
+                const upperCode = code.toUpperCase().trim();
+                
+                if (this.usedCodes.has(upperCode)) {
+                    this.showNotification('Code already used!', 'error');
+                    return false;
+                }
+                
+                if (this.secretCodes[upperCode]) {
+                    this.usedCodes.add(upperCode);
+                    this.secretCodes[upperCode].effect();
+                    return true;
+                } else {
+                    this.showNotification('Invalid code!', 'error');
+                    return false;
+                }
+            }
+            
+            showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = message;
+                notification.style.top = '20px';
+                
+                document.body.appendChild(notification);
+                
+                // Remove notification after 5 seconds
+                setTimeout(() => {
+                    notification.style.animation = 'slideIn 0.3s ease reverse';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 5000);
+            }
+            
+            updateDisplay() {
+                // Update stats
+                document.getElementById('bitcoin').textContent = this.bitcoin.toFixed(8);
+                document.getElementById('hashRate').textContent = this.formatHashRate(this.hashRate);
+                document.getElementById('powerUsage').textContent = 
+                    `${Math.round(this.totalPowerUsage)}W / ${this.totalPowerCapacity + this.powerGenerated}W`;
+                document.getElementById('money').textContent = `$${Math.round(this.money).toLocaleString()}`;
+                document.getElementById('btcPrice').textContent = `$${Math.round(this.bitcoinPrice).toLocaleString()}`;
+                document.getElementById('powerGenerated').textContent = `${this.powerGenerated}W`;
+                
+                // Update mining progress
+                const progress = (this.bitcoin % 1) * 100;
+                document.getElementById('miningProgress').style.width = `${progress}%`;
+                document.getElementById('nextBlock').textContent = `${progress.toFixed(1)}%`;
+                
+                // Render GPU shop
+                this.renderGPUShop();
+                
+                // Render owned GPUs
+                this.renderOwnedGPUs();
+                
+                // Render power shop
+                this.renderPowerShop();
+                
+                // Render owned power infrastructure
+                this.renderOwnedPower();
+                
+                // Render upgrade station
+                this.renderUpgradeStation();
+                
+                // Update fire warning if active
+                if (this.isOnFire) {
+                    document.getElementById('powerUsage').style.color = '#ff4444';
+                    document.getElementById('hashRate').style.color = '#ff4444';
+                } else {
+                    document.getElementById('powerUsage').style.color = '#4CAF50';
+                    document.getElementById('hashRate').style.color = '#4CAF50';
+                }
+            }
+            
+            formatHashRate(hashes) {
+                const units = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s'];
+                let unitIndex = 0;
+                while (hashes >= 1000 && unitIndex < units.length - 1) {
+                    hashes /= 1000;
+                    unitIndex++;
+                }
+                return `${hashes.toFixed(2)} ${units[unitIndex]}`;
+            }
+            
+            renderGPUShop() {
+                const shopDiv = document.getElementById('gpuShop');
+                shopDiv.innerHTML = '';
+                
+                this.gpuCatalog.forEach(gpu => {
+                    const div = document.createElement('div');
+                    div.className = `shop-item ${gpu.brand}`;
+                    div.innerHTML = `
+                        <h4>${gpu.name}</h4>
+                        <div>Hash: ${gpu.hashRate} MH/s</div>
+                        <div>Power: ${gpu.power}W</div>
+                        <div>Price: $${gpu.price}</div>
+                        <button onclick="game.buyGPU('${gpu.id}')" 
+                                ${this.money < gpu.price ? 'disabled' : ''}>
+                            BUY
+                        </button>
+                    `;
+                    shopDiv.appendChild(div);
+                });
+            }
+            
+            renderPowerShop() {
+                const shopDiv = document.getElementById('powerShop');
+                shopDiv.innerHTML = '';
+                
+                this.powerCatalog.forEach(item => {
+                    const canBuy = this.money >= item.price;
+                    const div = document.createElement('div');
+                    div.className = `shop-item ${item.type === 'psu' ? 'power-upgrade' : 'energy-source'} 
+                                   ${!canBuy ? 'disabled' : ''}`;
+                    div.innerHTML = `
+                        <h4>${item.name}</h4>
+                        <div>${item.type === 'psu' ? 'Capacity: ' + item.capacity + 'W' : 'Power: ' + item.power + 'W'}</div>
+                        <div>${item.description}</div>
+                        <div>Price: $${item.price}</div>
+                        <button onclick="game.buyPowerItem('${item.id}')" 
+                                ${!canBuy ? 'disabled' : ''}>
+                            BUY
+                        </button>
+                    `;
+                    shopDiv.appendChild(div);
+                });
+            }
+            
+            renderOwnedGPUs() {
+                const div = document.getElementById('ownedGpus');
+                div.innerHTML = '';
+                
+                if (this.gpus.length === 0) {
+                    div.innerHTML = '<p>No GPUs yet. Buy some from the shop!</p>';
+                    return;
+                }
+                
+                this.gpus.forEach((gpu, index) => {
+                    const gpuDiv = document.createElement('div');
+                    gpuDiv.className = `gpu-item ${gpu.brand} ${gpu.fromCode ? 'secret-code' : ''}`;
+                    const isOnFire = this.isOnFire;
+                    gpuDiv.innerHTML = `
+                        <div>
+                            <strong>${gpu.name} ${gpu.fromCode ? '🎁' : ''}</strong>
+                            <div>Level ${gpu.level} ${gpu.overclocked ? '⚡(OC)' : ''} ${isOnFire ? '🔥' : ''}</div>
+                            <div>${gpu.hashRate.toFixed(1)} MH/s - ${gpu.power}W</div>
+                        </div>
+                        <div>
+                            ${!gpu.fromCode ? `
+                                <button onclick="game.upgradeGPU(${index})" 
+                                        ${this.money < gpu.price * 0.5 ? 'disabled' : ''}>
+                                    Upgrade ($${Math.round(gpu.price * 0.5)})
+                                </button>
+                                ${!gpu.overclocked ? `
+                                    <button onclick="game.overclockGPU(${index})" 
+                                            ${this.money < 100 ? 'disabled' : ''}>
+                                        Overclock ($100)
+                                    </button>
+                                ` : ''}
+                            ` : '<span style="color: #FF9800;">Secret GPU</span>'}
+                        </div>
+                    `;
+                    div.appendChild(gpuDiv);
+                });
+            }
+            
+            renderOwnedPower() {
+                const div = document.getElementById('ownedPower');
+                div.innerHTML = '';
+                
+                const psuDiv = document.createElement('div');
+                psuDiv.className = 'power-item power-upgrade';
+                psuDiv.innerHTML = `
+                    <div>
+                        <strong>Power Supply Unit</strong>
+                        <div>Capacity: ${this.totalPowerCapacity}W ${this.isOnFire ? '🔥(EXPLODED!)' : ''}</div>
+                        <div>Level: ${this.psuLevel}</div>
+                    </div>
+                `;
+                div.appendChild(psuDiv);
+                
+                this.powerInfrastructure.forEach((source, index) => {
+                    const sourceDiv = document.createElement('div');
+                    sourceDiv.className = 'power-item energy-source';
+                    sourceDiv.innerHTML = `
+                        <div>
+                            <strong>${source.name}</strong>
+                            <div>Generates: ${source.power}W</div>
+                            <div>${source.description}</div>
+                        </div>
+                    `;
+                    div.appendChild(sourceDiv);
+                });
+            }
+            
+            renderUpgradeStation() {
+                const div = document.getElementById('upgradeStation');
+                div.innerHTML = `
+                    <div style="text-align: center; margin: 20px 0;">
+                        <button onclick="game.sellBitcoin()" style="padding: 15px 30px; font-size: 1.2em;">
+                            SELL BITCOIN FOR $${(this.bitcoin * this.bitcoinPrice).toFixed(2)}
+                        </button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <div style="background: rgba(40, 40, 60, 0.8); padding: 15px; border-radius: 8px;">
+                            <h3>📊 Stats</h3>
+                            <div>Total GPUs: ${this.gpus.length}</div>
+                            <div>Average GPU Level: ${this.gpus.length ? 
+                                (this.gpus.reduce((sum, g) => sum + g.level, 0) / this.gpus.length).toFixed(1) : 0}</div>
+                            <div>Overclocked GPUs: ${this.gpus.filter(g => g.overclocked).length}</div>
+                            <div>Secret Codes Used: ${this.usedCodes.size}</div>
+                        </div>
+                        <div style="background: rgba(40, 40, 60, 0.8); padding: 15px; border-radius: 8px;">
+                            <h3>⚡ Power Status</h3>
+                            <div>Power Usage: ${Math.round(this.totalPowerUsage)}W</div>
+                            <div>Power Capacity: ${this.totalPowerCapacity}W</div>
+                            <div>Renewable Power: ${this.powerGenerated}W</div>
+                            <div>Status: ${this.isOnFire ? '🔥 ON FIRE!' : this.totalPowerUsage > this.totalPowerCapacity + this.powerGenerated ? 
+                                '❌ OVERLOAD' : '✅ STABLE'}</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Game instance
+        const game = new Game();
+
+        // Code system functions
+        let codeInputVisible = false;
+        
+        function toggleCodeInput() {
+            const container = document.getElementById('codeInputContainer');
+            codeInputVisible = !codeInputVisible;
+            if (codeInputVisible) {
+                container.classList.add('show');
+                document.getElementById('codeInput').focus();
+            } else {
+                container.classList.remove('show');
+            }
+        }
+        
+        function submitCode() {
+            const codeInput = document.getElementById('codeInput');
+            const code = codeInput.value;
+            
+            if (code.trim() !== '') {
+                const success = game.submitCode(code);
+                if (success) {
+                    codeInput.value = '';
+                    toggleCodeInput();
+                }
+            }
+        }
+        
+        function handleCodeEnter(event) {
+            if (event.key === 'Enter') {
+                submitCode();
+            }
+        }
+
+        // Close code input when clicking outside
+        document.addEventListener('click', (event) => {
+            const codePanel = document.querySelector('.code-panel');
+            const codeInputContainer = document.getElementById('codeInputContainer');
+            
+            if (!codePanel.contains(event.target) && codeInputVisible) {
+                toggleCodeInput();
+            }
+        });
+    </script>
+</body>
+</html>
